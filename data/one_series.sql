@@ -1,0 +1,2 @@
+INSERT INTO series (name, photo, rating, status, review)
+VALUES ('Breaking Bad', 'https://avatars.mds.yandex.net/get-kinopoisk-image/1900788/fb35416f-3b0d-4b96-bc65-cf6923f9e329/600x900', 9, 'watched', 'Great series');
