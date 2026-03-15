@@ -12,6 +12,9 @@ __pycache__/
 .idea/
 .vscode/
 
-
 # environment variables
 .env
+
+# Директории с результатами
+allure-results
+allure-report

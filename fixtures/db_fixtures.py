@@ -1,5 +1,6 @@
 import psycopg
 import pytest
+import allure
 
 from config.db_config import DB_CONN_PARAMS
 from pathlib import Path
@@ -7,12 +8,14 @@ from pathlib import Path
 
 @pytest.fixture(scope="session")
 def db_connection():
-    conn = psycopg.connect(**DB_CONN_PARAMS)
+    with allure.step("Создание подключения к БД"):
+        conn = psycopg.connect(**DB_CONN_PARAMS)
     yield conn
-    conn.close()
+    with allure.step("Закрытие подключения к БД"):
+        conn.close()
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture()
 def db_insert_and_delete_series(db_connection):
     series_data = [
         ("Breaking Bad", "https://avatars.mds.yandex.net/get-kinopoisk-image/1900788/fb35416f-3b0d-4b96-bc65-cf6923f9e329/600x900", 9, "watched", "Great series"),
@@ -23,61 +26,65 @@ def db_insert_and_delete_series(db_connection):
 
     created_ids = []
 
-    try:
-        with db_connection.transaction():
-            with db_connection.cursor() as cur:
-                for s in series_data:
-                    cur.execute("""
-                        INSERT INTO series(name, photo, rating, status, review)
-                        VALUES(%s, %s, %s, %s, %s)
-                        RETURNING id
-                    """, s)
-                    created_ids.append(cur.fetchone()[0])
-    except psycopg.Error as e:
-        print(f"Ошибка при сохранении данных в БД: {e}")
-        raise
+    with allure.step("Наполнение таблицы сериалами"):
+        try:
+            with db_connection.transaction():
+                with db_connection.cursor() as cur:
+                    for s in series_data:
+                        cur.execute("""
+                            INSERT INTO series(name, photo, rating, status, review)
+                            VALUES(%s, %s, %s, %s, %s)
+                            RETURNING id
+                        """, s)
+                        created_ids.append(cur.fetchone()[0])
+        except psycopg.Error as e:
+            print(f"Ошибка при сохранении данных в БД: {e}")
+            raise
 
     yield created_ids
 
-    try:
-        with db_connection.transaction():
-            with db_connection.cursor() as cur:
-                cur.execute("""
-                    TRUNCATE TABLE series RESTART IDENTITY
-                """)
-    except psycopg.Error as e:
-        print(f"Ошибка при удалении данных в БД: {e}")
-        raise
+    with allure.step("Полное очищение таблицы"):
+        try:
+            with db_connection.transaction():
+                with db_connection.cursor() as cur:
+                    cur.execute("""
+                        TRUNCATE TABLE series RESTART IDENTITY
+                    """)
+        except psycopg.Error as e:
+            print(f"Ошибка при удалении данных в БД: {e}")
+            raise
 
 @pytest.fixture()
 def db_insert_and_delete_one_series(db_connection):
     series_data = ("Breaking Bad", "https://avatars.mds.yandex.net/get-kinopoisk-image/1900788/fb35416f-3b0d-4b96-bc65-cf6923f9e329/600x900", 9, "watched", "Great series")
     created_id = None
 
-    try:
-        with db_connection.transaction():
-            with db_connection.cursor() as cur:
-                    cur.execute("""
-                        INSERT INTO series(name, photo, rating, status, review)
-                        VALUES(%s, %s, %s, %s, %s)
-                        RETURNING id
-                    """, series_data)
-                    created_id = cur.fetchone()[0]
-    except psycopg.Error as e:
-        print(f"Ошибка при сохранении данных в БД: {e}")
-        raise
+    with allure.step("Создание одной записи сериала"):
+        try:
+            with db_connection.transaction():
+                with db_connection.cursor() as cur:
+                        cur.execute("""
+                            INSERT INTO series(name, photo, rating, status, review)
+                            VALUES(%s, %s, %s, %s, %s)
+                            RETURNING id
+                        """, series_data)
+                        created_id = cur.fetchone()[0]
+        except psycopg.Error as e:
+            print(f"Ошибка при сохранении данных в БД: {e}")
+            raise
 
     yield created_id
 
-    try:
-        with db_connection.transaction():
-            with db_connection.cursor() as cur:
-                cur.execute("""
-                    DELETE FROM series WHERE id = %s
-                """, (created_id,))
-    except psycopg.Error as e:
-        print(f"Ошибка при удалении данных в БД: {e}")
-        raise
+    with allure.step("Точечное удаление записи сериала"):
+        try:
+            with db_connection.transaction():
+                with db_connection.cursor() as cur:
+                    cur.execute("""
+                        DELETE FROM series WHERE id = %s
+                    """, (created_id,))
+        except psycopg.Error as e:
+            print(f"Ошибка при удалении данных в БД: {e}")
+            raise
 
 @pytest.fixture()
 def db_from_file(db_connection, request):
@@ -86,34 +93,37 @@ def db_from_file(db_connection, request):
     else:
         filename = "three_series.sql"
 
-    path = Path(__file__).parent.parent / "data" / filename
-    sql_script = path.read_text(encoding="utf-8")
+    with allure.step("Чтение SQL-скрипта из файла"):
+        path = Path(__file__).parent.parent / "data" / filename
+        sql_script = path.read_text(encoding="utf-8")
 
     result = 0
 
-    try:
-        with db_connection.transaction():
-            with db_connection.cursor() as cur:
-                cur.execute(sql_script)
-                cur.execute("""
-                    SELECT COUNT(*)
-                    FROM series
-                """)
-                result = cur.fetchone()[0]
-    except psycopg.Error as e:
-        print(f"Ошибка при работе с БД: {e}")
-        raise
+    with allure.step("Создание записей сериалов(-а) из файла и подсчет созданных записей(-и)"):
+        try:
+            with db_connection.transaction():
+                with db_connection.cursor() as cur:
+                    cur.execute(sql_script)
+                    cur.execute("""
+                        SELECT COUNT(*)
+                        FROM series
+                    """)
+                    result = cur.fetchone()[0]
+        except psycopg.Error as e:
+            print(f"Ошибка при работе с БД: {e}")
+            raise
 
     yield result
 
-    try:
-        with db_connection.transaction():
-            with db_connection.cursor() as cur:
-                cur.execute("""
-                    TRUNCATE TABLE series RESTART IDENTITY
-                """)
-    except psycopg.Error as e:
-        print(f"Ошибка при удалении данных в БД: {e}")
-        raise
+    with allure.step("Полное удаление созданных записей(-и)"):
+        try:
+            with db_connection.transaction():
+                with db_connection.cursor() as cur:
+                    cur.execute("""
+                        TRUNCATE TABLE series RESTART IDENTITY
+                    """)
+        except psycopg.Error as e:
+            print(f"Ошибка при удалении данных в БД: {e}")
+            raise
 
 
