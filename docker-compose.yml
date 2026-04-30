@@ -1,0 +1,61 @@
+version: '3.8'
+
+services:
+  msr-db:
+    container_name: msr-db
+    image: postgres:13-alpine
+    env_file:
+      - .env
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d my-shows-rating"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - test-network
+
+  msr-backend:
+    container_name: msr-backend
+    image: gitlab.qa.studio:5050/manual-qa/my-shows-rating/backend:v1.0.0
+    env_file:
+      - .env
+    ports:
+      - "${PORT}:${PORT}"
+    depends_on:
+      msr-db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:${PORT}/api/v1/series"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - test-network
+
+  api-tests:
+    container_name: api-tests
+    build:
+      context: ../myshows_api_tests
+      dockerfile: Dockerfile
+    depends_on:
+      msr-backend:
+        condition: service_healthy
+    environment:
+      API_HOST: http://msr-backend:${PORT}
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_HOST: msr-db
+      POSTGRES_PORT: ${POSTGRES_PORT}
+    networks:
+      - test-network
+    volumes:
+      - ./allure-results:/app/allure-results
+    command: ["pytest", "-v", "--alluredir=/app/allure-results"]
+
+networks:
+  test-network:
+    driver: bridge
+

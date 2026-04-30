@@ -2,7 +2,7 @@ import pytest
 import allure
 
 from http import HTTPStatus
-from config.api_config import HOST
+from config.api_config import API_HOST
 from helpers.file_helpers import load_yaml
 from jsonschema import validate
 from deepdiff import DeepDiff
@@ -22,7 +22,7 @@ class TestGetSeries:
     def test__series__without_params(self, api_session, db_from_file):
         with allure.step("Получаем список сериалов"):
             response = api_session.get(
-                HOST + "/api/v1/series"
+                API_HOST + "/api/v1/series"
             )
         with allure.step("Проверяем код ответа"):
             assert response.status_code == HTTPStatus.OK
@@ -37,7 +37,7 @@ class TestGetSeries:
     def test__series__with_invalid_status(self, api_session, check):
         with allure.step("Получаем список сериалов"):
             response = api_session.get(
-                HOST + "/api/v1/series",
+                API_HOST + "/api/v1/series",
                 params={"status": "watch"}
             )
         with allure.step("Проверяем код ответа"):
@@ -54,7 +54,7 @@ class TestGetSeries:
     def test__series__by_id(self, api_session, db_insert_and_delete_series):
         with allure.step("Получаем сериал по заданному id"):
             response = api_session.get(
-                HOST + "/api/v1/series/1",
+                API_HOST + "/api/v1/series/1",
             )
         with allure.step("Проверяем код ответа"):
             assert response.status_code == HTTPStatus.OK
@@ -96,7 +96,7 @@ class TestPutSeries:
 
         with allure.step("Обновляем информацию по сериалу"):
             response = api_session.put(
-                HOST + f"/api/v1/series/{db_insert_and_delete_one_series}",
+                API_HOST + f"/api/v1/series/{db_insert_and_delete_one_series}",
                 json=base_json
             )
 
