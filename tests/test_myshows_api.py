@@ -1,11 +1,13 @@
-import pytest
-import allure
-
 from http import HTTPStatus
+
+import allure
+import pytest
+from deepdiff import DeepDiff
+from jsonschema import validate
+
 from config.api_config import API_HOST
 from helpers.file_helpers import load_yaml
-from jsonschema import validate
-from deepdiff import DeepDiff
+
 
 @allure.suite("Тесты GET на эндпоинт /series")
 class TestGetSeries:
@@ -112,13 +114,12 @@ class TestPutSeries:
                 "status": 3,
                 "review": 4
             }
-            with db_connection.transaction():
-                with db_connection.cursor() as cur:
-                    cur.execute("""
+            with db_connection.transaction(), db_connection.cursor() as cur:
+                cur.execute("""
                         SELECT name, photo, rating, status, review
                         FROM series
                         WHERE id = %s
                     """, (db_insert_and_delete_one_series,))
-                    result = cur.fetchone()
-                    compare_with = field_indexes[field_name]
-                    assert result[compare_with] == new_value
+                result = cur.fetchone()
+                compare_with = field_indexes[field_name]
+                assert result[compare_with] == new_value

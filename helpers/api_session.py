@@ -1,8 +1,7 @@
 import json
-from textwrap import indent
 
-from requests import Session
 import allure
+from requests import Session
 
 # Делаем свою оболочку для отправки запросов. _send -> главное звено, через которое проходят все запросы (общий центр).
 
