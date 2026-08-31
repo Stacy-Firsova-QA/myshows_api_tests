@@ -7,56 +7,56 @@
 [![CI](https://github.com/Stacy-Firsova-QA/myshows_api_tests/actions/workflows/ci.yml/badge.svg)](https://github.com/Stacy-Firsova-QA/myshows_api_tests/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
-Автотесты для REST API pet-проекта **MyShows** — бэкенда для трекинга просмотренных сериалов. Проект написан как демонстрация подхода к тестированию API "снизу вверх": через слой HTTP-запросов и через прямую проверку состояния в базе данных.
+API test suite for **MyShows** — a pet-project backend for tracking watched TV series. The project demonstrates a "bottom-up" approach to API testing: verifying behavior both through the HTTP layer and by checking state directly in the database.
 
-## Что покрыто тестами
+## What's covered
 
-| Метод | Endpoint | Сценарий | Маркер |
+| Method | Endpoint | Scenario | Marker |
 |---|---|---|---|
-| GET | `/api/v1/series` | Получение списка сериалов: 0 / 1 / 3 записи в БД, валидация тела ответа по JSON Schema | `smoke` |
-| GET | `/api/v1/series` | Запрос с невалидным значением `status` — проверка кода ошибки и структуры сообщения | `regress` |
-| GET | `/api/v1/series/{id}` | Получение сериала по id, полная сверка тела ответа через `DeepDiff` | `smoke` |
-| PUT | `/api/v1/series/{id}` | Обновление каждого поля сериала по отдельности + проверка, что изменения реально попали в БД | `regress` |
+| GET | `/api/v1/series` | Get the list of series: 0 / 1 / 3 records in the DB, response body validated against a JSON Schema | `smoke` |
+| GET | `/api/v1/series` | Request with an invalid `status` value — checks the error code and error message structure | `regress` |
+| GET | `/api/v1/series/{id}` | Get a series by id, full response body comparison via `DeepDiff` | `smoke` |
+| PUT | `/api/v1/series/{id}` | Update each field of a series individually + verify the change was actually persisted in the DB | `regress` |
 
-## Архитектура тестов
+## Test architecture
 
-- **`helpers/api_session.py`** — тонкая обёртка над `requests.Session`: все запросы идут через единый метод `_send`, который автоматически прикладывает к Allure-отчёту URL, заголовки и тело запроса/ответа.
-- **`fixtures/api_fixtures.py`** и **`fixtures/db_fixtures.py`** — фикстуры уровня API (сессия) и уровня БД (подключение, наполнение и очистка таблицы `series`, в том числе из SQL-сидов в `data/`).
-- **`schemas/`** — JSON Schema для валидации структуры ответов API (`jsonschema`).
-- **`config/`** — конфигурация (base URL, параметры подключения к Postgres), значения берутся из переменных окружения.
-- Тесты не оставляют после себя данных: каждая фикстура, создающая записи, гарантированно их удаляет в teardown.
-- Маркеры `smoke` / `regress` (см. `pytest.ini`) позволяют гибко выбирать набор тестов для прогона.
+- **`helpers/api_session.py`** — a thin wrapper around `requests.Session`: every request goes through a single `_send` method, which automatically attaches the request/response URL, headers and body to the Allure report.
+- **`fixtures/api_fixtures.py`** and **`fixtures/db_fixtures.py`** — API-level (session) and DB-level fixtures (connection, seeding and cleaning up the `series` table, including from SQL seed files in `data/`).
+- **`schemas/`** — JSON Schema files used to validate the structure of API responses (`jsonschema`).
+- **`config/`** — configuration (base URL, Postgres connection parameters), values are read from environment variables.
+- Tests leave no data behind: every fixture that creates records is guaranteed to remove them again in teardown.
+- `smoke` / `regress` markers (see `pytest.ini`) allow flexible selection of which tests to run.
 
-## Стек технологий
+## Tech stack
 
 - **Python 3.12**, **pytest 9**
-- **requests** — HTTP-клиент
-- **psycopg 3** — проверка состояния напрямую в PostgreSQL
-- **jsonschema** — валидация контракта ответа
-- **deepdiff** — точное сравнение сложных объектов в теле ответа
-- **pytest-check** — soft-assertions для проверки нескольких условий за один тест
-- **allure-pytest** — отчётность
-- **python-dotenv** — конфигурация через `.env`
-- **Docker / docker-compose** — запуск тестов в изолированном окружении
+- **requests** — HTTP client
+- **psycopg 3** — verifying state directly in PostgreSQL
+- **jsonschema** — response contract validation
+- **deepdiff** — precise comparison of complex objects in the response body
+- **pytest-check** — soft assertions for checking multiple conditions in a single test
+- **allure-pytest** — reporting
+- **python-dotenv** — configuration via `.env`
+- **Docker / docker-compose** — running tests in an isolated environment
 
-## Структура проекта
+## Project structure
 
 ```
 myshows_api_tests/
-├── config/               # конфигурация: base URL, параметры подключения к БД
+├── config/               # configuration: base URL, DB connection parameters
 │   ├── api_config.py
 │   └── db_config.py
-├── data/                 # SQL-сиды для параметризованных тестов
+├── data/                 # SQL seed files for parametrized tests
 │   ├── zero_series.sql
 │   ├── one_series.sql
 │   └── three_series.sql
-├── fixtures/             # pytest-фикстуры уровня API и БД
+├── fixtures/              # pytest fixtures for the API and DB layers
 │   ├── api_fixtures.py
 │   └── db_fixtures.py
-├── helpers/              # вспомогательные обёртки и утилиты
-│   ├── api_session.py    # обёртка над requests.Session с логированием в Allure
+├── helpers/               # helper wrappers and utilities
+│   ├── api_session.py    # wrapper over requests.Session with Allure logging
 │   └── file_helpers.py
-├── schemas/              # JSON Schema для валидации ответов API
+├── schemas/               # JSON Schema files for validating API responses
 │   └── series_get.yml
 ├── tests/
 │   └── test_myshows_api.py
@@ -68,7 +68,7 @@ myshows_api_tests/
 └── .env.example
 ```
 
-## Быстрый старт (локально)
+## Quick start (local)
 
 ```bash
 git clone https://github.com/Stacy-Firsova-QA/myshows_api_tests.git
@@ -79,47 +79,47 @@ source .venv/bin/activate        # Windows: .venv\Scripts\activate
 
 pip install -r requirements.txt
 
-cp .env.example .env             # заполнить своими значениями
+cp .env.example .env             # fill in your own values
 ```
 
-Запуск всех тестов с отчётом Allure:
+Run all tests with an Allure report:
 
 ```bash
 pytest -v --alluredir=allure-results
 allure serve allure-results
 ```
 
-Запуск только smoke-тестов:
+Run only smoke tests:
 
 ```bash
 pytest -v -m smoke
 ```
 
-## Запуск в Docker
+## Running in Docker
 
 ```bash
 docker-compose up --build
 ```
 
-`docker-compose.yml` поднимает три сервиса: базу данных `msr-db` (Postgres), тестируемый бэкенд `msr-backend` и контейнер с тестами `api-tests`, который стартует после того, как бэкенд прошёл healthcheck.
+`docker-compose.yml` spins up three services: the database `msr-db` (Postgres), the backend under test `msr-backend`, and the test runner `api-tests`, which starts once the backend passes its healthcheck.
 
-> **Важно.** Образ `msr-backend` тянется из приватного Docker Registry учебной платформы и недоступен за её пределами — это ожидаемо, так как проект писался в рамках курса. Публично доступны структура тестов, конфигурация окружения и сам подход к оркестрации через `docker-compose`. Если у вас есть доступ к собственному инстансу бэкенда с совместимым API, тесты запустятся из коробки — достаточно указать актуальные `API_HOST` и параметры БД в `.env`.
+> **Note.** The `msr-backend` image is pulled from a private Docker Registry and isn't publicly accessible — the backend was originally built as part of a testing course. What's fully public here is the test suite, the environment configuration, and the `docker-compose` orchestration approach itself. If you have access to your own instance of a compatible backend, the tests will run out of the box — just point `API_HOST` and the DB parameters in `.env` to it.
 
 ## CI
 
-В GitHub Actions (`.github/workflows/ci.yml`) на каждый push и pull request в `main` автоматически:
+On every push and pull request to `main`, GitHub Actions (`.github/workflows/ci.yml`) automatically:
 
-1. Устанавливаются зависимости из `requirements.txt`;
-2. Код проверяется линтером [ruff](https://docs.astral.sh/ruff/);
-3. Выполняется `pytest --collect-only` — sanity-проверка, что все тесты, фикстуры и импорты корректны.
+1. Installs dependencies from `requirements.txt`;
+2. Lints the code with [ruff](https://docs.astral.sh/ruff/);
+3. Runs `pytest --collect-only` as a sanity check that all tests, fixtures and imports are valid.
 
-Полный прогон тестов с реальными запросами к API в CI сознательно не запускается — он требует доступа к приватному бэкенду (см. раздел выше). Такой подход честно отражает границы применимости CI для pet-проекта, завязанного на закрытую инфраструктуру.
+The full test run against a live API is intentionally not executed in CI, since it requires access to the private backend (see the note above). This keeps CI honest about what it actually verifies for a pet-project tied to closed infrastructure.
 
-## Об авторе
+## Author
 
 **Anastasia Firsova** — QA Automation Engineer.
 GitHub: [Stacy-Firsova-QA](https://github.com/Stacy-Firsova-QA)
 
-## Лицензия
+## License
 
-Проект распространяется под лицензией [MIT](LICENSE).
+This project is licensed under the [MIT License](LICENSE).
